@@ -14,4 +14,4 @@ WORKDIR /app
 
 COPY --from=builder /app/go-cycle-app .
 
-ENTRYPOINT ["/bin/bash", "-c", "./go-cycle-app -p $PORT -d $DOMAIN -f $DB_FILE -i $STRAVA_APP_ID -s $STRAVA_APP_SECRET -t VERIFY_TOKEN"]
+ENTRYPOINT ["/bin/bash", "-c", "./go-cycle-app -p $PORT -d $DOMAIN -f $DB_FILE -i $STRAVA_APP_ID -s $STRAVA_APP_SECRET -t $VERIFY_TOKEN"]

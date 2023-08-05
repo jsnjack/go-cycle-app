@@ -122,12 +122,7 @@ func registerSuccess(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		http.Error(w, fmt.Sprintf("Unexpected status code from Strava API: %d\n", resp.StatusCode), http.StatusBadGateway)
-		return
-	}
-	fmt.Fprint(w, "Subscribing to webhook")
+	fmt.Fprint(w, "subscribing to webhook")
 }
 
 // Performs SSL challenge and response to everything else
@@ -175,16 +170,25 @@ func webhook(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "POST":
 		Logger.Println("unhandled POST")
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			Logger.Println(err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		Logger.Println(string(body))
 	case "GET":
 		// Callback validation
 		queryParams := r.URL.Query()
 		hubMode := queryParams.Get("hub.mode")
 		if hubMode != "subscribe" {
+			Logger.Println("invalid mode")
 			http.Error(w, "Invalid mode", http.StatusBadRequest)
 			return
 		}
 		hubVerifyToken := queryParams.Get("hub.verify_token")
 		if hubVerifyToken != rootAppVerifyToken {
+			Logger.Println("invalid verify token")
 			http.Error(w, "Invalid verify token", http.StatusForbidden)
 			return
 		}
@@ -196,11 +200,13 @@ func webhook(w http.ResponseWriter, r *http.Request) {
 		}
 		jsonPayload, err := json.Marshal(payload)
 		if err != nil {
+			Logger.Println(err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		req, err := http.NewRequest("POST", r.RequestURI, bytes.NewBuffer(jsonPayload))
+		req, err := http.NewRequest("POST", "https://"+r.Host+r.RequestURI, bytes.NewBuffer(jsonPayload))
 		if err != nil {
+			Logger.Println(err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -208,6 +214,7 @@ func webhook(w http.ResponseWriter, r *http.Request) {
 		client := &http.Client{}
 		resp, err := client.Do(req)
 		if err != nil {
+			Logger.Println(err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
