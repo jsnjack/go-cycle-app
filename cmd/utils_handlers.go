@@ -109,6 +109,16 @@ func register(w http.ResponseWriter, r *http.Request) {
 
 // Performs SSL challenge and response to everything else
 func registerSuccess(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprint(w, "success")
+}
+
+// Performs SSL challenge and response to everything else
+func sslChallenge(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "go-cycle-auth "+Version)
+}
+
+// Subscribes app to Strava webhooks. Done only once
+func subscribeToWebhook(w http.ResponseWriter, r *http.Request) {
 	Logger.Println("succesfully registered, subscribing to webhook")
 	data := url.Values{}
 	data.Add("client_id", rootAppID)
@@ -122,12 +132,6 @@ func registerSuccess(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer resp.Body.Close()
-	fmt.Fprint(w, "subscribing to webhook")
-}
-
-// Performs SSL challenge and response to everything else
-func sslChallenge(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "go-cycle-auth "+Version)
 }
 
 // connectRequest is the entry point for a new user to register in the app

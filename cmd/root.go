@@ -63,6 +63,7 @@ var rootCmd = &cobra.Command{
 		http.Handle("/connect", logMi(connectRequest))
 		http.Handle("/register", logMi(register))
 		http.Handle("/register/success", logMi(registerSuccess))
+		http.Handle("/subscribe", logMi(subscribeToWebhook))
 		http.Handle("/webhook", logMi(webhook))
 
 		if rootPort == "443" {
