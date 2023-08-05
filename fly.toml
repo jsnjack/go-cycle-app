@@ -30,5 +30,5 @@ primary_region = "ams"
   path = "/"
 
 [mounts]
-  source = "go-cycle-app-data"
+  source = "go_cycle_app_data"
   destination = "/data"
