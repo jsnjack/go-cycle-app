@@ -21,3 +21,5 @@
 go.work
 
 .monova.history
+bin/
+*.db
