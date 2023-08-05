@@ -15,6 +15,7 @@ var rootPort string
 var rootDomain string
 var rootAppID string
 var rootAppSecret string
+var rootDBFilename string
 
 // DB is the Bolt db
 var DB *bolt.DB
@@ -56,6 +57,7 @@ func init() {
 	rootCmd.Flags().StringVarP(&rootDomain, "domain", "d", "localhost", "Webserver domain name. Used when port is 443 for the certificat retrieval")
 	rootCmd.Flags().StringVarP(&rootAppID, "id", "i", "", "Strava application ID")
 	rootCmd.Flags().StringVarP(&rootAppSecret, "secret", "s", "", "Strava application secret")
+	rootCmd.Flags().StringVarP(&rootDBFilename, "filename", "f", "go-cycle-app.db", "DB filename")
 
 	Logger = log.New(os.Stdout, "", log.Lmicroseconds|log.Lshortfile)
 }

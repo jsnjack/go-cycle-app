@@ -19,7 +19,7 @@ var startCmd = &cobra.Command{
 	Short: "start the webserver",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
-		DB, err = bolt.Open("go-cycle-app.db", 0644, nil)
+		DB, err = bolt.Open(rootDBFilename, 0644, nil)
 		if err != nil {
 			Logger.Fatal(err)
 		}
