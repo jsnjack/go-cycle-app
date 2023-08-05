@@ -6,13 +6,7 @@ COPY . .
 # Install all dependencies
 RUN go mod download
 
-ADD https://github.com/jsnjack/grm/releases/download/v0.54.0/grm /usr/local/bin/grm
-RUN chmod +x /usr/local/bin/grm
-
-# Automatically calculate version
-RUN /usr/local/bin/grm install monova -y
-
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-X github.com/jsnjack/go-cycle-app/cmd.Version=${VERSION}" -o go-cycle-app .
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o go-cycle-app .
 
 FROM fedora:38
 
