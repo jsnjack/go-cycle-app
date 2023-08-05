@@ -5,6 +5,7 @@ package cmd
 
 import (
 	"crypto/tls"
+	"embed"
 	"log"
 	"net/http"
 	"os"
@@ -29,11 +30,15 @@ var Version string
 // Logger is the main logger
 var Logger *log.Logger
 
+//go:embed templates/*
+var TemplatesStorage embed.FS
+
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "gocycleapp",
 	Short: "go-cycle Strava application",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		Logger.Printf("Starting the application on port %s, domain %s and db %s ...\n", rootPort, rootDomain, rootDBFilename)
 		var err error
 		DB, err = bolt.Open(rootDBFilename, 0644, nil)
 		if err != nil {
@@ -54,6 +59,7 @@ var rootCmd = &cobra.Command{
 		}
 
 		http.Handle("/", logMi(sslChallenge))
+		http.Handle("/connect", logMi(connectRequest))
 		http.Handle("/register", logMi(register))
 		http.Handle("/upload", logMi(upload))
 		http.Handle("/register/success", logMi(registerSuccess))

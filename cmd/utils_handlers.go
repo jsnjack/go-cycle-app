@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"io"
 	"log"
 	"mime/multipart"
@@ -217,4 +218,36 @@ func registerSuccess(w http.ResponseWriter, r *http.Request) {
 // Performs SSL challenge and response to everything else
 func sslChallenge(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "go-cycle-auth "+Version)
+}
+
+// connectRequest is the entry point for a new user to register in the app
+func connectRequest(w http.ResponseWriter, r *http.Request) {
+	// Read the template file from the embedded filesystem
+	tmplContent, err := TemplatesStorage.ReadFile("templates/connectRequest.html")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Parse the template content
+	tmpl, err := template.New("template").Parse(string(tmplContent))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	data := struct {
+		AppID       string
+		RedirectURL string
+	}{
+		AppID:       rootAppID,
+		RedirectURL: "https://" + rootDomain + "/register",
+	}
+
+	// Render the template with the provided data
+	err = tmpl.Execute(w, data)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
