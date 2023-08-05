@@ -1,0 +1,34 @@
+# fly.toml app configuration file generated for go-cycle-app on 2023-08-05T17:04:20+02:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = "go-cycle-app"
+primary_region = "ams"
+
+[build]
+  dockerfile = "Containerfile"
+
+[env]
+  PORT = "8080"
+  DOMAIN = "go-cycle.yauhen.cc"
+  DB_FILE = "/data/go-cycle-app.db"
+
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 0
+
+[[http_service.checks]]
+  grace_period = "10s"
+  interval = "30s"
+  method = "GET"
+  timeout = "5s"
+  path = "/"
+
+[mounts]
+  source = "go-cycle-app-data"
+  destination = "/data"
