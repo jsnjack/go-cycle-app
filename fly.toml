@@ -11,7 +11,7 @@ primary_region = "ams"
 
 [env]
   PORT = "8080"
-  DOMAIN = "go-cycle.yauhen.cc"
+  DOMAIN = "go-cycle-app.fly.dev"
   DB_FILE = "/data/go-cycle-app.db"
 
 
@@ -24,7 +24,7 @@ primary_region = "ams"
 
 [[http_service.checks]]
   grace_period = "10s"
-  interval = "30s"
+  interval = "600s"
   method = "GET"
   timeout = "5s"
   path = "/"
