@@ -1,5 +1,5 @@
-Total distance in {{ .Year }}: {{ .TotalDistance}}
-This activity contributed {{ .Contributed }} to your goal
-Remaining distance: {{ .DistanceLeft }}
-Remaining days: {{ .DaysLeft}}
+{{ .Description }}
++{{ .Contributed }}% towards the goal!
+{{ .TotalDistance }} of {{ .Goal }} km ({{ .Progress }}%) in {{ .Year }}
+{{ .DistanceLeft }} km and {{ .DaysLeft}} days remains
 {{ .Signature }}

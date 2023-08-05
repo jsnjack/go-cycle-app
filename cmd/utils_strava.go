@@ -54,7 +54,7 @@ type StravaWebhookData struct {
 }
 
 func addCommentToActivity(activityID int, userID int) {
-	goal := 5000000 // 5000 km
+	goal := 5000000.0 // 5000 km
 	signature := "-- go-cycle-app"
 	accessToken, err := RefreshAccessToken(userID)
 	if err != nil {
@@ -109,24 +109,19 @@ func addCommentToActivity(activityID int, userID int) {
 		return
 	}
 
-	templateData := struct {
-		Year          string
-		TotalDistance string
-		Contributed   string
-		DistanceLeft  string
-		DaysLeft      string
-		Signature     string
-	}{
-		Year:          fmt.Sprintf("%d", year),
-		TotalDistance: fmt.Sprintf("%.2f km", totalDistance/1000),
-		Contributed:   fmt.Sprintf("%.2f%%", activityDistance/float64(goal)*100),
-		DistanceLeft:  fmt.Sprintf("%d", int(time.Until(time.Date(year+1, time.January, 1, 0, 0, 0, 0, time.UTC)).Hours()/24)),
-		Signature:     signature,
-	}
-
 	// Render the template with the provided data
 	var buf bytes.Buffer
-	err = tmpl.Execute(&buf, templateData)
+	err = tmpl.Execute(&buf, map[string]interface{}{
+		"Description":   activityDescription,
+		"Year":          fmt.Sprintf("%d", year),
+		"Goal":          fmt.Sprintf("%.2f", goal/1000),
+		"TotalDistance": fmt.Sprintf("%.2f", totalDistance/1000),
+		"Progress":      fmt.Sprintf("%.2f", (totalDistance/goal)*100),
+		"Contributed":   fmt.Sprintf("%.2f", activityDistance/goal*100),
+		"DistanceLeft":  fmt.Sprintf("%.2f", (goal-totalDistance)/1000),
+		"DaysLeft":      fmt.Sprintf("%d", int(time.Until(time.Date(year+1, time.January, 1, 0, 0, 0, 0, time.UTC)).Hours()/24-1)),
+		"Signature":     signature,
+	})
 	if err != nil {
 		Logger.Println(err)
 		return
@@ -136,7 +131,7 @@ func addCommentToActivity(activityID int, userID int) {
 	data := struct {
 		Description string `json:"description"`
 	}{
-		Description: buf.String(),
+		Description: strings.TrimSpace(buf.String()),
 	}
 	dataJson, err := json.Marshal(data)
 	if err != nil {
