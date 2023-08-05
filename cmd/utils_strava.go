@@ -6,6 +6,8 @@ const StravaAuthURL = "https://www.strava.com/oauth/token"
 // StravaUploadURL is the URL of Strava upload endpoint
 const StravaUploadURL = "https://www.strava.com/api/v3/uploads"
 
+const StravaWebhookSubscribeURL = "https://www.strava.com/api/v3/push_subscriptions"
+
 // StravaResponseRefresh represents JSON data that comes from Strava
 type StravaResponseRefresh struct {
 	AccessToken  string `json:"access_token"`

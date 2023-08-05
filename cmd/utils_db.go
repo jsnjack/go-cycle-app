@@ -103,7 +103,7 @@ func SaveAuthData(authID string, data *StravaResponseRefresh, athleteID int) err
 		}
 
 		if athleteID != 0 {
-			// Populated uring the register call
+			// Populated during the register call
 			err = athleteBucket.Put([]byte("athleteID"), []byte(strconv.Itoa(athleteID)))
 			if err != nil {
 				return err

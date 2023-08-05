@@ -7,7 +7,6 @@ import (
 	"html/template"
 	"io"
 	"log"
-	"mime/multipart"
 	"net/http"
 	"net/url"
 	"strings"
@@ -108,111 +107,27 @@ func register(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "https://"+rootDomain+"/register/success?authid="+authID, http.StatusFound)
 }
 
-// Uploads activity to Strava
-func upload(w http.ResponseWriter, r *http.Request) {
-	var authID string
-	var file multipart.File
+// Performs SSL challenge and response to everything else
+func registerSuccess(w http.ResponseWriter, r *http.Request) {
+	Logger.Println("succesfully registered, subscribing to webhook")
+	data := url.Values{}
+	data.Add("client_id", rootAppID)
+	data.Add("client_secret", rootAppSecret)
+	data.Add("callback_url", "https://"+rootDomain+"/webhook")
+	data.Add("verify_token", rootAppVerifyToken)
 
-	logger, ok := r.Context().Value(HL).(*log.Logger)
-	if !ok {
-		logger = Logger
-	}
-
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	if r.Method != "POST" {
-		logger.Printf("Method is not allowed: %s\n", r.Method)
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		return
-	}
-	err := r.ParseMultipartForm(0)
+	resp, err := http.PostForm(StravaWebhookSubscribeURL, data)
 	if err != nil {
-		logger.Println(err.Error())
-		http.Error(w, "Failed to parse body", http.StatusUnprocessableEntity)
-		return
-	}
-	for k, v := range r.PostForm {
-		switch k {
-		case "authid":
-			authID = v[0]
-		default:
-			logger.Printf("Unexpected parameter %s: %v\n", k, v)
-		}
-	}
-
-	accessToken, err := RefreshAccessToken(authID)
-	if err != nil {
-		errText := err.Error()
-		logger.Printf(errText)
-		w.WriteHeader(http.StatusForbidden)
-		fmt.Fprint(w, errText)
-		return
-	}
-
-	file, _, err = r.FormFile("file")
-	if err != nil {
-		logger.Println(err.Error())
-		http.Error(w, "Failed to parse body and retrive file", http.StatusUnprocessableEntity)
-		return
-	}
-
-	body := &bytes.Buffer{}
-	writer := multipart.NewWriter(body)
-	part, err := writer.CreateFormFile("file", "go_cycle_activity.gpx")
-	if err != nil {
-		logger.Println(err.Error())
-		http.Error(w, "Failed to parse body", http.StatusUnprocessableEntity)
-		return
-	}
-	_, err = io.Copy(part, file)
-	if err != nil {
-		logger.Println(err.Error())
-		http.Error(w, "Failed to parse body", http.StatusUnprocessableEntity)
-		return
-	}
-
-	writer.WriteField("activity_type", "virtualride")
-	writer.WriteField("data_type", "gpx")
-	writer.WriteField("name", "go-cycle activity")
-	err = writer.Close()
-	if err != nil {
-		logger.Println(err.Error())
-		http.Error(w, "Failed to parse body", http.StatusUnprocessableEntity)
-		return
-	}
-
-	req, err := http.NewRequest("POST", StravaUploadURL, body)
-	if err != nil {
-		logger.Println(err.Error())
-		http.Error(w, "Failed to parse body", http.StatusUnprocessableEntity)
-		return
-	}
-	req.Header.Set("Content-Type", writer.FormDataContentType())
-	req.Header.Set("Authorization", "Bearer "+accessToken)
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		errText := err.Error()
-		logger.Printf(errText)
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(w, errText)
+		http.Error(w, err.Error(), http.StatusBadGateway)
 		return
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != 201 {
-		bodyByte, _ := io.ReadAll(resp.Body)
-		errText := fmt.Sprintf("Unexpected status code from Strava API: %d: %s\n", resp.StatusCode, string(bodyByte))
-		logger.Printf(errText)
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(w, errText)
+	if resp.StatusCode != http.StatusOK {
+		http.Error(w, fmt.Sprintf("Unexpected status code from Strava API: %d\n", resp.StatusCode), http.StatusBadGateway)
 		return
 	}
-}
-
-// Performs SSL challenge and response to everything else
-func registerSuccess(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Another Triumph\ngo-cycle-auth "+Version)
+	fmt.Fprint(w, "Subscribing to webhook")
 }
 
 // Performs SSL challenge and response to everything else
@@ -249,5 +164,57 @@ func connectRequest(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+}
+
+// webhook handles all incoming webhooks from Strava
+func webhook(w http.ResponseWriter, r *http.Request) {
+	// This endpoint needs to handle both POST (actual webhook) and GET (subscription confirmation)
+	// methods
+	Logger.Printf("incoming webhook: %s\n", r.Method)
+	switch r.Method {
+	case "POST":
+		Logger.Println("unhandled POST")
+	case "GET":
+		// Callback validation
+		queryParams := r.URL.Query()
+		hubMode := queryParams.Get("hub.mode")
+		if hubMode != "subscribe" {
+			http.Error(w, "Invalid mode", http.StatusBadRequest)
+			return
+		}
+		hubVerifyToken := queryParams.Get("hub.verify_token")
+		if hubVerifyToken != rootAppVerifyToken {
+			http.Error(w, "Invalid verify token", http.StatusForbidden)
+			return
+		}
+		hubChallenge := queryParams.Get("hub.challenge")
+		payload := struct {
+			Challenge string `json:"hub.challenge"`
+		}{
+			Challenge: hubChallenge,
+		}
+		jsonPayload, err := json.Marshal(payload)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		req, err := http.NewRequest("POST", r.RequestURI, bytes.NewBuffer(jsonPayload))
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		req.Header.Set("Content-Type", "application/json")
+		client := &http.Client{}
+		resp, err := client.Do(req)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		defer resp.Body.Close()
+		Logger.Println("responded to webhook validation request")
+		return
+	default:
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
 }

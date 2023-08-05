@@ -20,6 +20,7 @@ var rootDomain string
 var rootAppID string
 var rootAppSecret string
 var rootDBFilename string
+var rootAppVerifyToken string
 
 // DB is the Bolt db
 var DB *bolt.DB
@@ -61,8 +62,8 @@ var rootCmd = &cobra.Command{
 		http.Handle("/", logMi(sslChallenge))
 		http.Handle("/connect", logMi(connectRequest))
 		http.Handle("/register", logMi(register))
-		http.Handle("/upload", logMi(upload))
 		http.Handle("/register/success", logMi(registerSuccess))
+		http.Handle("/webhook", logMi(webhook))
 
 		if rootPort == "443" {
 			certManager := autocert.Manager{
@@ -125,6 +126,7 @@ func init() {
 	rootCmd.Flags().StringVarP(&rootAppID, "id", "i", "", "Strava application ID")
 	rootCmd.Flags().StringVarP(&rootAppSecret, "secret", "s", "", "Strava application secret")
 	rootCmd.Flags().StringVarP(&rootDBFilename, "filename", "f", "go-cycle-app.db", "DB filename")
+	rootCmd.Flags().StringVarP(&rootAppVerifyToken, "token", "t", "", "application verify token. Sent to Strava")
 
 	Logger = log.New(os.Stdout, "", log.Lmicroseconds|log.Lshortfile)
 }
