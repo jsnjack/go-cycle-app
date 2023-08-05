@@ -8,11 +8,19 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	bolt "go.etcd.io/bbolt"
 )
 
-var rootPort int
+var rootPort string
+var rootDomain string
 var rootAppID string
 var rootAppSecret string
+
+// DB is the Bolt db
+var DB *bolt.DB
+
+// Version is the version of the application calculated with monova
+var Version string
 
 // Logger is the main logger
 var Logger *log.Logger
@@ -44,7 +52,8 @@ func init() {
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
-	rootCmd.Flags().IntVarP(&rootPort, "port", "p", 8080, "Port to start the server on")
+	rootCmd.Flags().StringVarP(&rootPort, "port", "p", "8080", "Port to start the server on")
+	rootCmd.Flags().StringVarP(&rootDomain, "domain", "d", "localhost", "Webserver domain name. Used when port is 443 for the certificat retrieval")
 	rootCmd.Flags().StringVarP(&rootAppID, "id", "i", "", "Strava application ID")
 	rootCmd.Flags().StringVarP(&rootAppSecret, "secret", "s", "", "Strava application secret")
 
