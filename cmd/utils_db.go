@@ -16,19 +16,19 @@ import (
 var AuthBucket = []byte("auth")
 
 // RefreshAccessToken refresh access token
-func RefreshAccessToken(authID string) (string, error) {
+func RefreshAccessToken(athleteID int) (string, error) {
 	var refreshToken string
 	err := DB.View(func(tx *bolt.Tx) error {
 		authBucket := tx.Bucket(AuthBucket)
 
-		bucket := authBucket.Bucket([]byte(authID))
+		bucket := authBucket.Bucket([]byte(fmt.Sprintf("%d", athleteID)))
 		if bucket == nil {
-			return fmt.Errorf("user with authID %s doesn't exist", authID)
+			return fmt.Errorf("user with athleteID %d doesn't exist", athleteID)
 		}
 
 		data := bucket.Get([]byte("refreshToken"))
 		if data == nil {
-			return fmt.Errorf("refresh token for authID %s is not found", authID)
+			return fmt.Errorf("refresh token for athleteID %d is not found", athleteID)
 		}
 		refreshToken = string(data)
 		return nil
@@ -68,7 +68,7 @@ func RefreshAccessToken(authID string) (string, error) {
 		return "", err
 	}
 
-	err = SaveAuthData(authID, &stravaData, 0)
+	err = SaveAuthData(athleteID, &stravaData)
 
 	if err != nil {
 		return "", err
@@ -78,11 +78,11 @@ func RefreshAccessToken(authID string) (string, error) {
 }
 
 // SaveAuthData saves data retrieved from Strava to the database
-func SaveAuthData(authID string, data *StravaResponseRefresh, athleteID int) error {
+func SaveAuthData(athleteID int, data *StravaResponseRefresh) error {
 	err := DB.Update(func(tx *bolt.Tx) error {
 		authBucket := tx.Bucket(AuthBucket)
 
-		athleteBucket, err := authBucket.CreateBucketIfNotExists([]byte(authID))
+		athleteBucket, err := authBucket.CreateBucketIfNotExists([]byte(fmt.Sprintf("%d", athleteID)))
 		if err != nil {
 			return err
 		}
@@ -101,15 +101,6 @@ func SaveAuthData(authID string, data *StravaResponseRefresh, athleteID int) err
 		if err != nil {
 			return err
 		}
-
-		if athleteID != 0 {
-			// Populated during the register call
-			err = athleteBucket.Put([]byte("athleteID"), []byte(strconv.Itoa(athleteID)))
-			if err != nil {
-				return err
-			}
-		}
-
 		return nil
 	})
 	return err

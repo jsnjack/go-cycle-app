@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -83,8 +82,7 @@ func register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Generate new authID
-	authID, err := GenerateRandomID(10)
+	err = SaveAuthData(stravaData.Athlete.ID, &stravaData.StravaResponseRefresh)
 	if err != nil {
 		errText := err.Error()
 		logger.Printf(errText)
@@ -93,18 +91,7 @@ func register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	logger.Printf("New user %s", authID)
-
-	err = SaveAuthData(authID, &stravaData.StravaResponseRefresh, stravaData.Athlete.ID)
-	if err != nil {
-		errText := err.Error()
-		logger.Printf(errText)
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(w, errText)
-		return
-	}
-
-	http.Redirect(w, r, "https://"+rootDomain+"/register/success?authid="+authID, http.StatusFound)
+	http.Redirect(w, r, "https://"+rootDomain+"/register/success", http.StatusFound)
 }
 
 // Performs SSL challenge and response to everything else
@@ -173,14 +160,23 @@ func webhook(w http.ResponseWriter, r *http.Request) {
 	Logger.Printf("incoming webhook: %s\n", r.Method)
 	switch r.Method {
 	case "POST":
-		Logger.Println("unhandled POST")
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
 			Logger.Println(err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		Logger.Println(string(body))
+		data := StravaWebhookData{}
+		err = json.Unmarshal(body, &data)
+		if err != nil {
+			Logger.Println(err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if data.AspectType != "delete" && data.ObjectType == "activity" {
+			Logger.Printf("new activity %d for user %d\n", data.ObjectID, data.OwnerID)
+			go addCommentToActivity(data.ObjectID, data.OwnerID)
+		}
 	case "GET":
 		// Callback validation
 		queryParams := r.URL.Query()
@@ -208,21 +204,8 @@ func webhook(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		req, err := http.NewRequest("POST", "https://"+r.Host+r.RequestURI, bytes.NewBuffer(jsonPayload))
-		if err != nil {
-			Logger.Println(err)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		req.Header.Set("Content-Type", "application/json")
-		client := &http.Client{}
-		resp, err := client.Do(req)
-		if err != nil {
-			Logger.Println(err)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		defer resp.Body.Close()
+		w.Header().Add("Content-Type", "application/json")
+		w.Write(jsonPayload)
 		Logger.Println("responded to webhook validation request")
 		return
 	default:

@@ -1,0 +1,5 @@
+Total distance in {{ .Year }}: {{ .TotalDistance}}
+This activity contributed {{ .Contributed }} to your goal
+Remaining distance: {{ .DistanceLeft }}
+Remaining days: {{ .DaysLeft}}
+{{ .Signature }}
