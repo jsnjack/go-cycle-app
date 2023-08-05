@@ -4,10 +4,18 @@ Copyright © 2023 YAUHEN SHULITSKI
 package cmd
 
 import (
+	"log"
 	"os"
 
 	"github.com/spf13/cobra"
 )
+
+var rootPort int
+var rootAppID string
+var rootAppSecret string
+
+// Logger is the main logger
+var Logger *log.Logger
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -36,5 +44,9 @@ func init() {
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	rootCmd.Flags().IntVarP(&rootPort, "port", "p", 8080, "Port to start the server on")
+	rootCmd.Flags().StringVarP(&rootAppID, "id", "i", "", "Strava application ID")
+	rootCmd.Flags().StringVarP(&rootAppSecret, "secret", "s", "", "Strava application secret")
+
+	Logger = log.New(os.Stdout, "", log.Lmicroseconds|log.Lshortfile)
 }
