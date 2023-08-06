@@ -114,7 +114,7 @@ func SaveAuthData(athleteID int, data *StravaResponseRefresh) error {
 func CreateAccountAlias(appAccountID string, athleteID int) error {
 	err := DB.Update(func(tx *bolt.Tx) error {
 		aliasBucket := tx.Bucket(AccountAliasBucket)
-		err := aliasBucket.Put([]byte("appAccountID"), []byte(fmt.Sprintf("%d", athleteID)))
+		err := aliasBucket.Put([]byte(appAccountID), []byte(fmt.Sprintf("%d", athleteID)))
 		if err != nil {
 			return err
 		}
