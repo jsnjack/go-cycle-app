@@ -142,7 +142,7 @@ func GetAthleteIDFromAccountID(appAccountID string) (int, error) {
 }
 
 func SetGoal(athleteID int, goal float64) error {
-	err := DB.View(func(tx *bolt.Tx) error {
+	err := DB.Update(func(tx *bolt.Tx) error {
 		authBucket := tx.Bucket(AccountBucket)
 
 		bucket := authBucket.Bucket([]byte(fmt.Sprintf("%d", athleteID)))
