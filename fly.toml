@@ -9,9 +9,12 @@ primary_region = "ams"
 [build]
   dockerfile = "Containerfile"
 
+[deploy]
+  strategy = "immediate"
+
 [env]
   PORT = "8080"
-  DOMAIN = "go-cycle-app.fly.dev"
+  DOMAIN = "go-cycle.yauhen.cc"
   DB_FILE = "/data/go-cycle-app.db"
 
 
