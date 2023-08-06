@@ -59,8 +59,7 @@ var rootCmd = &cobra.Command{
 			Logger.Fatal(err)
 		}
 
-		http.Handle("/", logMi(sslChallenge))
-		http.Handle("/connect", logMi(connectRequest))
+		http.Handle("/", logMi(rootHandler))
 		http.Handle("/register", logMi(register))
 		http.Handle("/register/success", logMi(registerSuccess))
 		http.Handle("/subscribe", logMi(subscribeToWebhook))

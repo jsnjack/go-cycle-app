@@ -99,11 +99,6 @@ func registerSuccess(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, "success")
 }
 
-// Performs SSL challenge and response to everything else
-func sslChallenge(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "go-cycle-auth "+Version)
-}
-
 // Subscribes app to Strava webhooks. Done only once
 func subscribeToWebhook(w http.ResponseWriter, r *http.Request) {
 	Logger.Println("succesfully registered, subscribing to webhook")
@@ -121,8 +116,8 @@ func subscribeToWebhook(w http.ResponseWriter, r *http.Request) {
 	defer resp.Body.Close()
 }
 
-// connectRequest is the entry point for a new user to register in the app
-func connectRequest(w http.ResponseWriter, r *http.Request) {
+// rootHandler is the entry point for a new user to register in the app
+func rootHandler(w http.ResponseWriter, r *http.Request) {
 	// Read the template file from the embedded filesystem
 	tmplContent, err := TemplatesStorage.ReadFile("templates/connectRequest.html")
 	if err != nil {
