@@ -83,6 +83,7 @@ func register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	logger.Printf("saving data for athlete %d", stravaData.Athlete.ID)
 	err = SaveAuthData(stravaData.Athlete.ID, &stravaData.StravaResponseRefresh)
 	if err != nil {
 		errText := err.Error()
@@ -93,6 +94,14 @@ func register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	accountID, err := GenerateRandomID(30)
+	logger.Printf("generating account id for athlete %d: %s", stravaData.Athlete.ID, accountID)
+	if err != nil {
+		logger.Println(err)
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(w, err.Error())
+		return
+	}
+	err = CreateAccountAlias(accountID, stravaData.Athlete.ID)
 	if err != nil {
 		logger.Println(err)
 		w.WriteHeader(http.StatusBadRequest)
@@ -113,9 +122,9 @@ func accountHandler(w http.ResponseWriter, r *http.Request) {
 	athleteID, err := GetAthleteIDFromAccountID(accountID)
 	if err != nil {
 		logger.Println(err)
-		// w.WriteHeader(http.StatusNotFound)
-		// fmt.Fprint(w, err.Error())
-		// return
+		w.WriteHeader(http.StatusNotFound)
+		fmt.Fprint(w, err.Error())
+		return
 	}
 
 	switch r.Method {
