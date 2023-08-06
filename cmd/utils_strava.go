@@ -59,7 +59,7 @@ func addCommentToActivity(activityID int, userID int) {
 		Logger.Println(err)
 		goal = 5000000
 	}
-	signature := "-- go-cycle-app"
+	signature := "-- https://go-cycle.yauhen.cc"
 	accessToken, err := RefreshAccessToken(userID)
 	if err != nil {
 		Logger.Println(err)
