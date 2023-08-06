@@ -10,6 +10,8 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+
+	"github.com/jellydator/ttlcache/v3"
 )
 
 // Authenticates user with Strava and save tokens in database
@@ -101,31 +103,20 @@ func register(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, err.Error())
 		return
 	}
-	err = CreateAccountAlias(accountID, stravaData.Athlete.ID)
-	if err != nil {
-		logger.Println(err)
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(w, err.Error())
-		return
-	}
+
+	AccountCache.Set(accountID, stravaData.Athlete.ID, ttlcache.DefaultTTL)
 
 	http.Redirect(w, r, "https://"+rootDomain+"/account?accountId="+accountID, http.StatusFound)
 }
 
 func accountHandler(w http.ResponseWriter, r *http.Request) {
-	logger, ok := r.Context().Value(HL).(*log.Logger)
-	if !ok {
-		logger = Logger
-	}
-
 	accountID := r.URL.Query().Get("accountId")
-	athleteID, err := GetAthleteIDFromAccountID(accountID)
-	if err != nil {
-		logger.Println(err)
-		w.WriteHeader(http.StatusNotFound)
-		fmt.Fprint(w, err.Error())
+	item := AccountCache.Get(accountID)
+	if item.Value() == 0 {
+		http.Error(w, "account not found", http.StatusNotFound)
 		return
 	}
+	athleteID := item.Value()
 
 	switch r.Method {
 	case http.MethodGet:

@@ -9,7 +9,9 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
+	"github.com/jellydator/ttlcache/v3"
 	"github.com/spf13/cobra"
 	bolt "go.etcd.io/bbolt"
 	"golang.org/x/crypto/acme/autocert"
@@ -24,6 +26,8 @@ var rootAppVerifyToken string
 
 // DB is the Bolt db
 var DB *bolt.DB
+
+var AccountCache *ttlcache.Cache[string, int]
 
 // Version is the version of the application calculated with monova
 var Version string
@@ -47,16 +51,14 @@ var rootCmd = &cobra.Command{
 		}
 		defer DB.Close()
 
+		AccountCache = ttlcache.New[string, int](
+			ttlcache.WithTTL[string, int](30 * time.Minute),
+		)
+		go AccountCache.Start()
+
 		err = DB.Update(func(tx *bolt.Tx) error {
 			_, err := tx.CreateBucketIfNotExists(AccountBucket)
-			if err != nil {
-				return err
-			}
-			_, err = tx.CreateBucketIfNotExists(AccountAliasBucket)
-			if err != nil {
-				return err
-			}
-			return nil
+			return err
 		})
 
 		if err != nil {

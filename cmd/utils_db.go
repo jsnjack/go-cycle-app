@@ -13,12 +13,9 @@ import (
 )
 
 // DB structure:
-// There are 2 buckets:
 // 1. AccountBucket - contains all information about Strava athlete: access token and athlet's goal
-// 2. AccountAliasBucket - maps athlete's account ID in go-cycle app to his athlete ID in Strava
 
 var AccountBucket = []byte("account")
-var AccountAliasBucket = []byte("alias")
 
 // RefreshAccessToken refresh access token
 func RefreshAccessToken(athleteID int) (string, error) {
@@ -109,36 +106,6 @@ func SaveAuthData(athleteID int, data *StravaResponseRefresh) error {
 		return nil
 	})
 	return err
-}
-
-func CreateAccountAlias(appAccountID string, athleteID int) error {
-	err := DB.Update(func(tx *bolt.Tx) error {
-		aliasBucket := tx.Bucket(AccountAliasBucket)
-		err := aliasBucket.Put([]byte(appAccountID), []byte(fmt.Sprintf("%d", athleteID)))
-		if err != nil {
-			return err
-		}
-		return nil
-	})
-	return err
-}
-
-func GetAthleteIDFromAccountID(appAccountID string) (int, error) {
-	var athleteID int
-	err := DB.View(func(tx *bolt.Tx) error {
-		var err error
-
-		bucket := tx.Bucket(AccountAliasBucket)
-		result := bucket.Get([]byte(appAccountID))
-		if result == nil {
-			return fmt.Errorf("account %s doesn't exist", appAccountID)
-		}
-		athleteIDStr := string(result)
-		athleteID, err = strconv.Atoi(athleteIDStr)
-		return err
-	})
-
-	return athleteID, err
 }
 
 func SetGoal(athleteID int, goal float64) error {
