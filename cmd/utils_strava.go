@@ -54,7 +54,11 @@ type StravaWebhookData struct {
 }
 
 func addCommentToActivity(activityID int, userID int) {
-	goal := 5000000.0 // 5000 km
+	goal, err := GetGoal(userID)
+	if err != nil {
+		Logger.Println(err)
+		goal = 5000000
+	}
 	signature := "-- go-cycle-app"
 	accessToken, err := RefreshAccessToken(userID)
 	if err != nil {

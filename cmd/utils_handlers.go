@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 )
 
@@ -91,12 +92,99 @@ func register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, "https://"+rootDomain+"/register/success", http.StatusFound)
+	accountID, err := GenerateRandomID(30)
+	if err != nil {
+		logger.Println(err)
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(w, err.Error())
+		return
+	}
+
+	http.Redirect(w, r, "https://"+rootDomain+"/account?accountId="+accountID, http.StatusFound)
 }
 
-// Performs SSL challenge and response to everything else
-func registerSuccess(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "success")
+func accountHandler(w http.ResponseWriter, r *http.Request) {
+	logger, ok := r.Context().Value(HL).(*log.Logger)
+	if !ok {
+		logger = Logger
+	}
+
+	accountID := r.URL.Query().Get("accountId")
+	athleteID, err := GetAthleteIDFromAccountID(accountID)
+	if err != nil {
+		logger.Println(err)
+		// w.WriteHeader(http.StatusNotFound)
+		// fmt.Fprint(w, err.Error())
+		// return
+	}
+
+	switch r.Method {
+	case http.MethodGet:
+		tmplContent, err := TemplatesStorage.ReadFile("templates/account.html")
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// Parse the template content
+		tmpl, err := template.New("template").Parse(string(tmplContent))
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// Render the template with the provided data
+		err = tmpl.Execute(w, map[string]interface{}{
+			"AthleteID": athleteID,
+		})
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	case http.MethodPost:
+		err := r.ParseForm()
+		if err != nil {
+			http.Error(w, "Failed to parse form data", http.StatusBadRequest)
+			return
+		}
+
+		// Extract the form values
+		goalStr := r.FormValue("goal")
+		goalNumber, err := strconv.Atoi(goalStr)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		err = SetGoal(athleteID, float64(goalNumber))
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+	default:
+		w.WriteHeader(http.StatusMethodNotAllowed)
+	}
+}
+
+func successHandler(w http.ResponseWriter, r *http.Request) {
+	tmplContent, err := TemplatesStorage.ReadFile("templates/success.html")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Parse the template content
+	tmpl, err := template.New("template").Parse(string(tmplContent))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Render the template with the provided data
+	err = tmpl.Execute(w, map[string]interface{}{})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
 
 // Subscribes app to Strava webhooks. Done only once
@@ -122,6 +210,10 @@ func subscribeToWebhook(w http.ResponseWriter, r *http.Request) {
 
 // rootHandler is the entry point for a new user to register in the app
 func rootHandler(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path != "/" {
+		http.Error(w, "Not found", http.StatusNotFound)
+		return
+	}
 	// Read the template file from the embedded filesystem
 	tmplContent, err := TemplatesStorage.ReadFile("templates/connectRequest.html")
 	if err != nil {

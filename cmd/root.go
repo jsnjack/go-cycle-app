@@ -48,7 +48,11 @@ var rootCmd = &cobra.Command{
 		defer DB.Close()
 
 		err = DB.Update(func(tx *bolt.Tx) error {
-			_, err := tx.CreateBucketIfNotExists(AuthBucket)
+			_, err := tx.CreateBucketIfNotExists(AccountBucket)
+			if err != nil {
+				return err
+			}
+			_, err = tx.CreateBucketIfNotExists(AccountAliasBucket)
 			if err != nil {
 				return err
 			}
@@ -61,7 +65,8 @@ var rootCmd = &cobra.Command{
 
 		http.Handle("/", logMi(rootHandler))
 		http.Handle("/register", logMi(register))
-		http.Handle("/register/success", logMi(registerSuccess))
+		http.Handle("/account", logMi(accountHandler))
+		http.Handle("/success", logMi(successHandler))
 		http.Handle("/subscribe", logMi(subscribeToWebhook))
 		http.Handle("/webhook", logMi(webhook))
 

@@ -24,4 +24,7 @@ release: build
 	tar --transform='s,_.*,,' --transform='s,bin/,,' -cz -f bin/${BIN}_linux_amd64.tar.gz bin/${BIN}_linux_amd64
 	grm release jsnjack/grm -f bin/${BIN} -f bin/${BIN}_linux_amd64.tar.gz -t "v`monova`"
 
-.PHONY: version release build test
+run:
+	find . -name "*.go" -o -name "*.html" -o -name "*.txt" | entr -sr "go run ."
+
+.PHONY: version release build test run
