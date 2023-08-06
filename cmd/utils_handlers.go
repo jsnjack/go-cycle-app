@@ -101,7 +101,10 @@ func registerSuccess(w http.ResponseWriter, r *http.Request) {
 
 // Subscribes app to Strava webhooks. Done only once
 func subscribeToWebhook(w http.ResponseWriter, r *http.Request) {
-	Logger.Println("succesfully registered, subscribing to webhook")
+	logger, ok := r.Context().Value(HL).(*log.Logger)
+	if !ok {
+		logger = Logger
+	}
 	data := url.Values{}
 	data.Add("client_id", rootAppID)
 	data.Add("client_secret", rootAppSecret)
@@ -110,6 +113,7 @@ func subscribeToWebhook(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := http.PostForm(StravaWebhookSubscribeURL, data)
 	if err != nil {
+		logger.Println(err)
 		http.Error(w, err.Error(), http.StatusBadGateway)
 		return
 	}
@@ -152,24 +156,27 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 func webhook(w http.ResponseWriter, r *http.Request) {
 	// This endpoint needs to handle both POST (actual webhook) and GET (subscription confirmation)
 	// methods
-	Logger.Printf("incoming webhook: %s\n", r.Method)
+	logger, ok := r.Context().Value(HL).(*log.Logger)
+	if !ok {
+		logger = Logger
+	}
 	switch r.Method {
 	case "POST":
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
-			Logger.Println(err)
+			logger.Println(err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		data := StravaWebhookData{}
 		err = json.Unmarshal(body, &data)
 		if err != nil {
-			Logger.Println(err)
+			logger.Println(err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		if data.AspectType != "delete" && data.ObjectType == "activity" {
-			Logger.Printf("new activity %d for user %d\n", data.ObjectID, data.OwnerID)
+			logger.Printf("new activity %d for user %d\n", data.ObjectID, data.OwnerID)
 			go addCommentToActivity(data.ObjectID, data.OwnerID)
 		}
 	case "GET":
@@ -177,13 +184,13 @@ func webhook(w http.ResponseWriter, r *http.Request) {
 		queryParams := r.URL.Query()
 		hubMode := queryParams.Get("hub.mode")
 		if hubMode != "subscribe" {
-			Logger.Println("invalid mode")
+			logger.Println("invalid mode")
 			http.Error(w, "Invalid mode", http.StatusBadRequest)
 			return
 		}
 		hubVerifyToken := queryParams.Get("hub.verify_token")
 		if hubVerifyToken != rootAppVerifyToken {
-			Logger.Println("invalid verify token")
+			logger.Println("invalid verify token")
 			http.Error(w, "Invalid verify token", http.StatusForbidden)
 			return
 		}
@@ -195,13 +202,13 @@ func webhook(w http.ResponseWriter, r *http.Request) {
 		}
 		jsonPayload, err := json.Marshal(payload)
 		if err != nil {
-			Logger.Println(err)
+			logger.Println(err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		w.Header().Add("Content-Type", "application/json")
 		w.Write(jsonPayload)
-		Logger.Println("responded to webhook validation request")
+		logger.Println("responded to webhook validation request")
 		return
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
