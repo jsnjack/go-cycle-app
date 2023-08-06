@@ -169,6 +169,7 @@ func accountHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
+		http.Redirect(w, r, "https://"+rootDomain+"/success", http.StatusFound)
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
 	}
