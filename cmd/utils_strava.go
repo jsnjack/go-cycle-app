@@ -198,6 +198,9 @@ func renderDescription(goal, totalDistance, activityDistance float64, descriptio
 			format := fmt.Sprintf("%%.%df", 2)
 			return fmt.Sprintf(format, f)
 		},
+		"greaterFloat": func(a float64, b float64) bool {
+			return a >= b
+		},
 	}
 
 	// Parse the template content
