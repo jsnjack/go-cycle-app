@@ -1,0 +1,67 @@
+package cmd
+
+import (
+	"fmt"
+	"testing"
+	"time"
+)
+
+func Test_renderDescription_simple(t *testing.T) {
+	year := time.Now().Year()
+	desc, err := renderDescription(1000, 500, 10, "", "")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	expected := fmt.Sprintf(`+1.00%% towards the goal!
+0.50 of 1.00 km (50.00%%) in %d
+0.50 km and 116 days remains`, year)
+
+	if desc != expected {
+		fmt.Printf("Expected text: %q\n", expected)
+		fmt.Printf("  Actual text: %q\n", desc)
+		t.Fail()
+	}
+}
+
+func Test_renderDescription_with_signature(t *testing.T) {
+	year := time.Now().Year()
+	desc, err := renderDescription(1000, 500, 10, "", "-- app")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	expected := fmt.Sprintf(`+1.00%% towards the goal!
+0.50 of 1.00 km (50.00%%) in %d
+0.50 km and 116 days remains
+-- app`, year)
+
+	if desc != expected {
+		fmt.Printf("Expected text: %q\n", expected)
+		fmt.Printf("  Actual text: %q\n", desc)
+		t.Fail()
+	}
+}
+
+func Test_renderDescription_with_description(t *testing.T) {
+	year := time.Now().Year()
+	desc, err := renderDescription(1000, 500, 10, "other app", "-- app")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	expected := fmt.Sprintf(`other app
++1.00%% towards the goal!
+0.50 of 1.00 km (50.00%%) in %d
+0.50 km and 116 days remains
+-- app`, year)
+
+	if desc != expected {
+		fmt.Printf("Expected text: %q\n", expected)
+		fmt.Printf("  Actual text: %q\n", desc)
+		t.Fail()
+	}
+}

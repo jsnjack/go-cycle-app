@@ -98,34 +98,7 @@ func addCommentToActivity(activityID int, userID int) {
 		return
 	}
 
-	year := time.Now().Year()
-
-	tmplContent, err := TemplatesStorage.ReadFile("templates/description.txt")
-	if err != nil {
-		Logger.Println(err)
-		return
-	}
-
-	// Parse the template content
-	tmpl, err := template.New("template").Parse(string(tmplContent))
-	if err != nil {
-		Logger.Println(err)
-		return
-	}
-
-	// Render the template with the provided data
-	var buf bytes.Buffer
-	err = tmpl.Execute(&buf, map[string]interface{}{
-		"Description":   activityDescription,
-		"Year":          fmt.Sprintf("%d", year),
-		"Goal":          fmt.Sprintf("%.2f", goal/1000),
-		"TotalDistance": fmt.Sprintf("%.2f", totalDistance/1000),
-		"Progress":      fmt.Sprintf("%.2f", (totalDistance/goal)*100),
-		"Contributed":   fmt.Sprintf("%.2f", activityDistance/goal*100),
-		"DistanceLeft":  fmt.Sprintf("%.2f", (goal-totalDistance)/1000),
-		"DaysLeft":      fmt.Sprintf("%d", int(time.Until(time.Date(year+1, time.January, 1, 0, 0, 0, 0, time.UTC)).Hours()/24-1)),
-		"Signature":     signature,
-	})
+	newDesc, err := renderDescription(goal, totalDistance, activityDistance, activityDescription, signature)
 	if err != nil {
 		Logger.Println(err)
 		return
@@ -135,7 +108,7 @@ func addCommentToActivity(activityID int, userID int) {
 	data := struct {
 		Description string `json:"description"`
 	}{
-		Description: strings.TrimSpace(buf.String()),
+		Description: newDesc,
 	}
 	dataJson, err := json.Marshal(data)
 	if err != nil {
@@ -207,4 +180,44 @@ func makePaginatedRequest(url string, accessToken string, page int) (*[]Activity
 	}
 	Logger.Printf("Retrieved %d activities\n", len(activities))
 	return &activities, nil
+}
+
+// renderDescription renders description of the activity from the template
+// Notes:
+//   - all distance is in meters
+//   - `totalDistance` already includes `activityDistance`
+func renderDescription(goal, totalDistance, activityDistance float64, description, signature string) (string, error) {
+	year := time.Now().Year()
+	tmplContent, err := TemplatesStorage.ReadFile("templates/description.txt")
+	if err != nil {
+		return "", err
+	}
+
+	funcMap := template.FuncMap{
+		"toFixedTwo": func(f float64) string {
+			format := fmt.Sprintf("%%.%df", 2)
+			return fmt.Sprintf(format, f)
+		},
+	}
+
+	// Parse the template content
+	tmpl := template.Must(template.New("example").Funcs(funcMap).Parse(string(tmplContent)))
+
+	// Render the template with the provided data
+	var buf bytes.Buffer
+	err = tmpl.Execute(&buf, map[string]interface{}{
+		"Description":   description,
+		"Year":          year,
+		"Goal":          goal / 1000,
+		"TotalDistance": totalDistance / 1000,
+		"Progress":      (totalDistance / goal) * 100,
+		"Contributed":   activityDistance / goal * 100,
+		"DistanceLeft":  (goal - totalDistance) / 1000,
+		"DaysLeft":      int(time.Until(time.Date(year+1, time.January, 1, 0, 0, 0, 0, time.UTC)).Hours()/24 - 1),
+		"Signature":     signature,
+	})
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(buf.String()), nil
 }

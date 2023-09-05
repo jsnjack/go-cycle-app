@@ -1,5 +1,5 @@
 {{ .Description }}
-+{{ .Contributed }}% towards the goal!
-{{ .TotalDistance }} of {{ .Goal }} km ({{ .Progress }}%) in {{ .Year }}
-{{ .DistanceLeft }} km and {{ .DaysLeft}} days remains
++{{ toFixedTwo .Contributed }}% towards the goal!
+{{ toFixedTwo .TotalDistance }} of {{ toFixedTwo .Goal }} km ({{ toFixedTwo .Progress }}%) in {{ .Year }}
+{{ toFixedTwo .DistanceLeft }} km and {{ .DaysLeft}} days remains
 {{ .Signature }}
