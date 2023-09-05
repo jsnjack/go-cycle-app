@@ -17,6 +17,7 @@ bin/${BIN}_linux_amd64: version main.go cmd/*.go
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-X github.com/jsnjack/${BIN}/cmd.Version=${VERSION}" -o bin/${BIN}_linux_amd64
 
 build: test bin/${BIN} bin/${BIN}_linux_amd64
+
 test:
 	cd cmd && go test
 
