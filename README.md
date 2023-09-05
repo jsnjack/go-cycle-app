@@ -17,3 +17,7 @@ The application is deployed to [https://go-cycle.yauhen.cc](https://go-cycle.yau
     ```sh
     fly deploy
     ```
+
+## Useful commands
+- `fly ssh console` - SSH into the server
+- `fly ssh sftp shell; get /data/` - will copy /data folder to host
