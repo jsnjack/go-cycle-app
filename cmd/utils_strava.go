@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"golang.org/x/exp/slices"
 )
 
 // StravaAuthURL is the URL of oauth endpoint
@@ -20,6 +22,15 @@ const StravaWebhookSubscribeURL = "https://www.strava.com/api/v3/push_subscripti
 
 const StravaListActivitiesURL = "https://www.strava.com/api/v3/athlete/activities"
 const StravaUpdateActivityURL = "https://www.strava.com/api/v3/activities"
+
+// List of activities which are considered to be "cycling" activities
+var CyclingActivities = []string{
+	"GravelRide",
+	"Handcycle",
+	"MountainBikeRide",
+	"Ride",
+	"VirtualRide",
+}
 
 // StravaResponseRefresh represents JSON data that comes from Strava
 type StravaResponseRefresh struct {
@@ -41,7 +52,7 @@ type AthleteData struct {
 
 type Activity struct {
 	ID          int     `json:"id"`
-	Type        string  `json:"type"`
+	SportType   string  `json:"sport_type"`
 	Distance    float64 `json:"distance"`
 	Description string  `json:"description"`
 }
@@ -71,6 +82,7 @@ func addCommentToActivity(activityID int, userID int) {
 		Logger.Println(err)
 		return
 	}
+	Logger.Printf("found %d cycling activities\n", len(*activities))
 
 	totalDistance := 0.0
 	activityDistance := 0.0
@@ -81,6 +93,10 @@ func addCommentToActivity(activityID int, userID int) {
 			Logger.Printf("found matching activity %d\n", activity.ID)
 			activityDistance = activity.Distance
 			activityDescription = activity.Description
+			if !slices.Contains(CyclingActivities, activity.SportType) {
+				Logger.Printf("activity %d is not cycling\n", activityID)
+				return
+			}
 		}
 	}
 
@@ -133,6 +149,7 @@ func addCommentToActivity(activityID int, userID int) {
 	Logger.Printf("updating activity %d: %s\n", activityID, resp.Status)
 }
 
+// Returns all cycling activities of the current year
 func getYearActivities(accessToken string) (*[]Activity, error) {
 	startOfYear := time.Date(time.Now().Year(), time.January, 1, 0, 0, 0, 0, time.UTC).Unix()
 
@@ -150,7 +167,11 @@ func getYearActivities(accessToken string) (*[]Activity, error) {
 		if len(*fetched) == 0 {
 			break
 		}
-		activities = append(activities, *fetched...)
+		for _, activity := range *fetched {
+			if slices.Contains(CyclingActivities, activity.SportType) {
+				activities = append(activities, activity)
+			}
+		}
 	}
 	return &activities, nil
 }
